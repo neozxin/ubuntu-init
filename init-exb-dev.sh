@@ -2,6 +2,8 @@
 init__DevExB_pull() {
   local urlexb="https://devtopia.esri.com/Beijing-R-D-Center/ExperienceBuilder.git"
   local urlexbext="https://devtopia.esri.com/Beijing-R-D-Center/ExperienceBuilder-Web-Extensions.git"
+  # # When using submodule: git submodule add "${urlexbext}" ./client/extensions
+  # test -d ExperienceBuilder || git clone --recursive "${urlexb}" || return 1
   test -d ExperienceBuilder || git clone "${urlexb}" || return 1
   test -d ExperienceBuilder/client/extensions || git clone "${urlexbext}" "./ExperienceBuilder/client/extensions" || return 1
   cd ExperienceBuilder && git pull && cd .. || return 1
