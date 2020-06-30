@@ -8,6 +8,11 @@ init__DevExB_pull() {
   test -d ExperienceBuilder/client/extensions || git clone "${urlexbext}" "./ExperienceBuilder/client/extensions" || return 1
   cd ExperienceBuilder && git pull && cd .. || return 1
   cd ExperienceBuilder/client/extensions && git pull && cd ../../.. || return 1
+
+  # ensure helpful devtool configs
+  local pathexb_vscode="./ExperienceBuilder/.vscode"
+  mkdir -p "${pathexb_vscode}" || return 1
+  test -f "${pathexb_vscode}/launch.json" || echo "${var_vscode_launch_json}" > "${pathexb_vscode}/launch.json" || return 1
 }
 
 init__DevExB_install() {
@@ -38,6 +43,55 @@ main() {
   printf -- "\n[$(date) @ X] Fail...\n"
   return 1
 }
+
+var_vscode_launch_json="$(cat << 'EOF'
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/client",
+      "name": "webpack-x",
+      "program": "${workspaceFolder}/client/node_modules/webpack/bin/webpack.js",
+      "args": [
+        "--config",
+        // "./webpack/webpack-site.config.js"
+        // "./webpack/webpack-extensions.config.js"
+        // "./webpack/webpack-builder.config.js"
+        // "./webpack/webpack-jimu-core.config.js"
+        // "./webpack/webpack-jimu-ui.config.js"
+        "./webpack/webpack-experience.config.js"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/server",
+      "name": "webpack-server",
+      // "runtimeExecutable": "${workspaceFolder}/server/node_modules/nodemon/bin/nodemon.js",
+      "program": "${workspaceFolder}/server/node_modules/ts-node/dist/bin.js",
+      "args": [
+        // "--exec",
+        "./src/server.ts",
+        // "--",
+        "-d"
+      ]
+    }
+  ],
+}
+EOF
+)"
 
 [ -n "${____verbose}" ] && set -x
 main "$@"
