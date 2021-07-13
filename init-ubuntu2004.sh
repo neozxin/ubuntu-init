@@ -26,6 +26,7 @@ do__func_add_file_content() {
       [ -f "${local__path}" ] || sudo touch "${local__path}" || break
       cat "${local__path}" >> "${local__path_my_temp_file}" || break
       sudo mv "${local__path_my_temp_file}" "${local__path}" || break
+      # sudo chown root:root "${local__path}" || break
     elif [ "append" = "${local__type}" ]; then
       [ -f "${local__path}" ] || sudo touch "${local__path}" || break
       sudo sh -c "printf -- '\n${local__content}' >> '${local__path}'" || break
@@ -123,6 +124,16 @@ do__action() {
       ssh -V || { sudo apt-get -y install ssh || break; }
 
       ##### 开发依赖 #####
+      # 安装 Docker
+      docker -v || {
+        wget -qO- http://get.docker.io | sh || break
+        # local local__pkg_filename="docker-ce_17.09.1~ce-0~ubuntu_amd64.deb"
+        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || wget https://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_17.09.1~ce-0~ubuntu_amd64.deb -P "${var__inst_pkg_path}/"
+        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || break
+        # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename}" || sudo apt-get -yf install || break
+        sudo usermod -aG docker $USER || break
+      }
+
       # 安装 VSCode
       code -v || {
         sudo snap install code --classic || break
