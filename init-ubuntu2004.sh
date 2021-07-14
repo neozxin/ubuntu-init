@@ -3,7 +3,7 @@
 echo ${var__is_verbose:="y"}
 echo ${var__cmd_types:="type__init_os|type__inst_dev"}
 # echo ${var__env_path:="$HOME/.profile"}
-# echo ${var__inst_pkg_path:="$HOME/Downloads/_shares"}
+echo ${var__inst_pkg_path:="$HOME/Downloads/_shares"}
 # echo ${var__inst_exec_path:="/opt"}
 echo ${var__init_os__virtualbox_guest__apply:="y"}
 echo  ${var__init_os__virtualbox_guest__nat_host_name_local:="host.mynat.local"}
@@ -31,6 +31,19 @@ do__func_add_file_content() {
       [ -f "${local__path}" ] || sudo touch "${local__path}" || break
       sudo sh -c "printf -- '\n${local__content}' >> '${local__path}'" || break
     fi
+    return
+  done
+  return 1
+}
+
+do__func_download_file() {
+  local local__download_url="$1"
+  local local__pkg_filename="$2"
+  local local__pkg_dir="$3"
+  echo ${local__pkg_dir:="."}
+  while true; do
+    [ -f "${local__pkg_dir}/${local__pkg_filename}" ] || wget "${local__download_url}" -P "${local__pkg_dir}/"
+    [ -f "${local__pkg_dir}/${local__pkg_filename}" ] || break
     return
   done
   return 1
@@ -89,12 +102,12 @@ do__action() {
       fi
 
       # # 默认 root 权限配置
-      # local local__path_my_sudoers="$HOME/mysudoers_$(date +%s%N)"
-      # sudo printf -- "\n\n$USER ALL=(ALL:ALL) NOPASSWD: ALL\n" > "${local__path_my_sudoers}" || break
-      # sudo chown root:root "${local__path_my_sudoers}" || break
-      # sudo chmod 0440 "${local__path_my_sudoers}" || break
-      # sudo rm -rf "/etc/sudoers.d/${local__path_my_sudoers}" || break
-      # sudo mv "${local__path_my_sudoers}" "/etc/sudoers.d/" || break
+      local local__path_my_sudoers="$HOME/mysudoers_$(date +%s%N)"
+      sudo printf -- "\n\n$USER ALL=(ALL:ALL) NOPASSWD: ALL\n" > "${local__path_my_sudoers}" || break
+      sudo chown root:root "${local__path_my_sudoers}" || break
+      sudo chmod 0440 "${local__path_my_sudoers}" || break
+      sudo rm -rf "/etc/sudoers.d/${local__path_my_sudoers}" || break
+      sudo mv "${local__path_my_sudoers}" "/etc/sudoers.d/" || break
 
       # 部分设置在重启后生效
       sudo apt-get -yf install || break
@@ -126,11 +139,18 @@ do__action() {
       ##### 开发依赖 #####
       # 安装 Docker
       docker -v || {
-        wget -qO- http://get.docker.io | sh || break
-        # local local__pkg_filename="docker-ce_17.09.1~ce-0~ubuntu_amd64.deb"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || wget https://download.docker.com/linux/ubuntu/dists/xenial/pool/stable/amd64/docker-ce_17.09.1~ce-0~ubuntu_amd64.deb -P "${var__inst_pkg_path}/"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || break
-        # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename}" || sudo apt-get -yf install || break
+        # sudo snap install docker || break
+        # wget -qO- http://get.docker.io | sh || break
+        local local__pkg_filename_containerd="containerd.io_1.4.6-1_amd64.deb"
+        local local__pkg_filename_docker_ce_cli="docker-ce-cli_20.10.7~3-0~ubuntu-focal_amd64.deb"
+        local local__pkg_filename_docker_ce="docker-ce_20.10.7~3-0~ubuntu-focal_amd64.deb"
+        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_containerd}" "${local__pkg_filename_containerd}" "${var__inst_pkg_path}" || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_containerd}" || sudo apt-get -yf install || break
+        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce_cli}" "${local__pkg_filename_docker_ce_cli}" "${var__inst_pkg_path}" || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || sudo apt-get -yf install || break
+        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || sudo apt-get -yf install || break
+        getent group docker || sudo groupadd docker || break
         sudo usermod -aG docker $USER || break
       }
 
@@ -138,8 +158,7 @@ do__action() {
       code -v || {
         sudo snap install code --classic || break
         # local local__pkg_filename="code_1.43.2-1585036376_amd64.deb"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || wget https://vscode.cdn.azure.cn/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/code_1.43.2-1585036376_amd64.deb -P "${var__inst_pkg_path}/"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || break
+        # do__func_download_file "https://vscode.cdn.azure.cn/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/${local__pkg_filename}" "${local__pkg_filename}" "${var__inst_pkg_path}" || break
         # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename}" || sudo apt-get -yf install || break
       }
 
@@ -148,8 +167,7 @@ do__action() {
         sudo snap install node --classic --channel=14 || break
         # curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash - && sudo apt-get install -y nodejs || break
         # local local__pkg_filename="node-v8.1.0-linux-x64.tar.gz"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || wget https://nodejs.org/dist/v8.1.0/node-v8.1.0-linux-x64.tar.gz -P "${var__inst_pkg_path}/"
-        # [ -f "${var__inst_pkg_path}/${local__pkg_filename}" ] || break
+        # do__func_download_file "https://nodejs.org/dist/v8.1.0/${local__pkg_filename}" "${local__pkg_filename}" "${var__inst_pkg_path}" || break
         # sudo tar -zxvf "${var__inst_pkg_path}/${local__pkg_filename}" -C "${var__inst_exec_path}" || break
         # printf -- "\n" >> "${var__env_path}" || break
         # printf -- "\nexport NODEJS_HOME=\"${var__inst_exec_path}/node-v8.1.0-linux-x64/bin\"" >> "${var__env_path}" || break
