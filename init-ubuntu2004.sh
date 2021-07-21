@@ -9,17 +9,18 @@ echo ${var__init_os__virtualbox_guest__apply:="y"}
 echo  ${var__init_os__virtualbox_guest__nat_host_name_local:="host.mynat.local"}
 echo  ${var__init_os__virtualbox_guest__nat_host_ip:="10.0.2.2"}
 echo ${var__init_os__proxy__apply:=""}
-echo  ${var__init_os__proxy__ip:="10.41.77.158"}
+echo  ${var__init_os__proxy__ip:="10.41.77.158"} #10.42.70.226"}
 echo  ${var__init_os__proxy__port:="8080"}
 echo  ${var__init_os__proxy__username:=""}
 echo  ${var__init_os__proxy__password:=""}
 echo  ${var__init_os__proxy__host_name_local:="internet.myproxy.local"}
 
 do__func_add_file_content() {
-  local local__type="$(printf -- "$1" | cut -c 2-)"
+  local local__type="$1" #"$(printf -- "$1" | cut -c 2-)"
   local local__path="$2"
   local local__content="$3"
   local local__is_sudo="$(printf -- "$1" | cut -c -1)"
+  if case "${local__path}" in "$HOME"*) true;; *) false;; esac; then local__is_sudo="-"; else local__is_sudo="+"; fi
   while true; do
     local local__path_my_temp_file="$HOME/my_temp_file_$(date +%s%N)"
     touch "${local__path_my_temp_file}" || break
@@ -35,7 +36,7 @@ do__func_add_file_content() {
     sudo rm -rf "${local__path}" || break
     sudo mv "${local__path_my_temp_file}" "${local__path}" || break
     [ "+" = "${local__is_sudo}" ] && { sudo chown root:root "${local__path}" || break; }
-    return
+    return 0
   done
   return 1
 }
@@ -48,7 +49,7 @@ do__func_download_file() {
   while true; do
     [ -f "${local__pkg_dir}/${local__pkg_filename}" ] || wget "${local__download_url}" -P "${local__pkg_dir}/"
     [ -f "${local__pkg_dir}/${local__pkg_filename}" ] || break
-    return
+    return 0
   done
   return 1
 }
@@ -69,7 +70,7 @@ do__action() {
         # proxy hostname
         local local__path_etc_hosts="/etc/hosts"
         local local__line_etc_hosts_proxy1="${var__init_os__proxy__ip} ${var__init_os__proxy__host_name_local}\n"
-        [ -n "${var__init_os__proxy__ip}" ] && { do__func_add_file_content "+prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_proxy1}" || break; }
+        [ -n "${var__init_os__proxy__ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_proxy1}" || break; }
         # general proxy
         local local__path_env="/etc/environment"
         local local__no_proxy_items=".local,localhost,127.0.0.1,::1"
@@ -78,14 +79,14 @@ do__action() {
         local__lines_env_proxy1="${local__lines_env_proxy1}https_proxy=${local__url_proxy}\nHTTPS_PROXY=${local__url_proxy}\n"
         local__lines_env_proxy1="${local__lines_env_proxy1}ftp_proxy=${local__url_proxy}\nFTP_PROXY=${local__url_proxy}\n"
         local__lines_env_proxy1="${local__lines_env_proxy1}no_proxy=${local__no_proxy_items}\nNO_PROXY=${local__no_proxy_items}\n"
-        do__func_add_file_content "+append" "${local__path_env}" "${local__lines_env_proxy1}" || break
+        do__func_add_file_content "append" "${local__path_env}" "${local__lines_env_proxy1}" || break
         # apt proxy
         local local__path_apt_proxy="/etc/apt/apt.conf.d/80proxy"
         local local__lines_apt_proxy1="\n\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::http::proxy \"${local__url_proxy}\";\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::https::proxy \"${local__url_proxy}\";\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::ftp::proxy \"${local__url_proxy}\";\n"
-        do__func_add_file_content "+append" "${local__path_apt_proxy}" "${local__lines_apt_proxy1}" || break
+        do__func_add_file_content "append" "${local__path_apt_proxy}" "${local__lines_apt_proxy1}" || break
         # snap proxy
         sudo snap set system proxy.http="${local__url_proxy}" || break
         sudo snap set system proxy.https="${local__url_proxy}" || break
@@ -102,7 +103,7 @@ do__action() {
         getent group vboxsf && { sudo usermod -a -G vboxsf $USER || break; }
         local local__path_etc_hosts="/etc/hosts"
         local local__line_etc_hosts_host1="${var__init_os__virtualbox_guest__nat_host_ip} ${var__init_os__virtualbox_guest__nat_host_name_local}\n"
-        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && { do__func_add_file_content "+prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_host1}" || break; }
+        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_host1}" || break; }
         # sudo reboot
       fi
 
@@ -153,11 +154,11 @@ do__action() {
         local local__pkg_filename_docker_ce_cli="docker-ce-cli_20.10.7~3-0~ubuntu-focal_amd64.deb"
         local local__pkg_filename_docker_ce="docker-ce_20.10.7~3-0~ubuntu-focal_amd64.deb"
         do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_containerd}" "${local__pkg_filename_containerd}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_containerd}" || sudo apt-get -yf install || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_containerd}" || break
         do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce_cli}" "${local__pkg_filename_docker_ce_cli}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || sudo apt-get -yf install || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || break
         do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || sudo apt-get -yf install || break
+        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || break
         # set user group
         getent group docker || sudo groupadd docker || break
         sudo usermod -aG docker $USER || break
@@ -175,11 +176,11 @@ do__action() {
         local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTPS_PROXY=${local__url_proxy}\"\n"
         local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"NO_PROXY=${local__no_proxy_items}\"\n"
         # set proxy
-        do__func_add_file_content "+append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
+        do__func_add_file_content "append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
         local local__path_docker_daemon="/etc/docker/daemon.json"
         local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://9cpn8tt6.mirror.aliyuncs.com\"] }\n"
         # set registry
-        do__func_add_file_content "+append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
+        do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
       fi
 
       # 安装 VSCode
@@ -203,7 +204,7 @@ do__action() {
         # do__func_download_file "https://nodejs.org/dist/v14.17.3/${local__pkg_filename}" "${local__pkg_filename}" "${var__inst_pkg_path}" || break
         # sudo tar -zxvf "${var__inst_pkg_path}/${local__pkg_filename}" -C "${var__inst_exec_path}" || break
         # local local__lines_env="\n\nexport PATH=\"${var__inst_exec_path}/node-v14.17.3-linux-x64/bin\":\"$PATH\""
-        # do__func_add_file_content "+append" "${var__env_path}" "${local__lines_env}" || break
+        # do__func_add_file_content "append" "${var__env_path}" "${local__lines_env}" || break
       }
       npm -v || { sudo apt-get -y install npm || break; }
       if [ "y" = "${var__init_os__proxy__apply}" ]; then
@@ -217,7 +218,7 @@ do__action() {
         local__lines_npmrc_proxy1="${local__lines_npmrc_proxy1}https-proxy = ${local__url_proxy}\n"
         local__lines_npmrc_proxy1="${local__lines_npmrc_proxy1}registry = http://registry.npmjs.org/\n"
         local__lines_npmrc_proxy1="${local__lines_npmrc_proxy1}##### registry = https://registry.npm.taobao.org/\n"
-        do__func_add_file_content "-append" "${local__path_npmrc}" "${local__lines_npmrc_proxy1}" || break
+        do__func_add_file_content "append" "${local__path_npmrc}" "${local__lines_npmrc_proxy1}" || break
         # sudo npm config set proxy "${local__url_proxy}" || break
         # sudo npm config set https-proxy "${local__url_proxy}" || break
         # sudo npm config set registry 'http://registry.npmjs.org/' || break
@@ -234,7 +235,7 @@ do__action() {
       printf -- "\nUsage: config variables before executing me\n"
 
     fi
-    return
+    return 0
   done
   return 1
 }
