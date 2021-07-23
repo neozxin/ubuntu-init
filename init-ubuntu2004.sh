@@ -6,6 +6,8 @@ echo ${var__cmd_types:="type__init_os|type__inst_dev"}
 echo ${var__inst_pkg_path:="$HOME/Downloads/_shares"}
 # echo ${var__inst_exec_path:="/opt"}
 echo ${var__init_os__virtualbox_guest__apply:="y"}
+echo  ${var__init_os__virtualbox_guest__nat_guest_name_local:="guest.mynat.local"}
+echo  ${var__init_os__virtualbox_guest__nat_guest_ip:="10.0.2.15"}
 echo  ${var__init_os__virtualbox_guest__nat_host_name_local:="host.mynat.local"}
 echo  ${var__init_os__virtualbox_guest__nat_host_ip:="10.0.2.2"}
 echo ${var__init_os__proxy__apply:=""}
@@ -102,8 +104,10 @@ do__action() {
         # sudo apt-get install virtualbox-guest-dkms || break #https://download.virtualbox.org/virtualbox/5.2.6/
         getent group vboxsf && { sudo usermod -a -G vboxsf $USER || break; }
         local local__path_etc_hosts="/etc/hosts"
-        local local__line_etc_hosts_host1="${var__init_os__virtualbox_guest__nat_host_ip} ${var__init_os__virtualbox_guest__nat_host_name_local}\n"
-        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_host1}" || break; }
+        local local__lines_etc_hosts=""
+        local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_guest_ip} ${var__init_os__virtualbox_guest__nat_guest_name_local}\n"
+        local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_host_ip} ${var__init_os__virtualbox_guest__nat_host_name_local}\n"
+        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__lines_etc_hosts}" || break; }
         # sudo reboot
       fi
 
@@ -193,7 +197,7 @@ do__action() {
         # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename}" || sudo apt-get -yf install || break
       }
 
-      # 安装 NodeJS
+      # 安装 NodeJS, Npm
       node -v || {
         # snap install
         sudo snap install node --classic --channel=14 || break
@@ -225,6 +229,18 @@ do__action() {
         sudo npm config list || break
       fi
 
+      [ "y" = "${var__init_os__virtualbox_guest__apply}" ] && {
+        # docker run --name=my-ssh-server -d --restart=unless-stopped -p=3000:3000 wettyoss/wetty --ssh-host="${var__init_os__virtualbox_guest__nat_guest_ip}" || break
+        # docker run --name=my-webssh2-server -d --restart=unless-stopped -p=2222:2222 psharkey/webssh2 || break
+        # docker run --name=my-webssh-server -d --restart=unless-stopped -p=8888:8888 jakewalker/webssh || break
+        docker run --name=my-webssh-server -d --restart=unless-stopped --net=host jakewalker/webssh || break
+        wget -qO- https://raw.githubusercontent.com/x11vnc/docker-desktop/master/docker_desktop.py | python3 || break
+        local local__path_my_all_server_nginx_conf="$HOME/vol-docker/my-all-server.default.conf"
+        mkdir -p "$(dirname "${local__path_my_all_server_nginx_conf}")" || break
+        printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${local__path_my_all_server_nginx_conf}"
+        docker run --name=my-all-server -d --restart=unless-stopped --net=host -v="${local__path_my_all_server_nginx_conf}":"/etc/nginx/conf.d/default.conf":ro nginx || break
+      }
+
       # 部分设置在重启后生效
       sudo apt-get -yf install || break
 
@@ -239,6 +255,38 @@ do__action() {
   done
   return 1
 }
+
+var__inst_dev__my_all_server_nginx_conf="$(cat << 'EOF'
+server {
+    listen       80;
+    listen  [::]:80;
+    server_name  _;
+
+    location /wssh/ {
+        #proxy_redirect off;
+        proxy_pass http://localhost:8888/;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-PORT $remote_port;
+    }
+    location /x11vnc/ {
+        #proxy_redirect off;
+        proxy_pass http://localhost:6080/;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-PORT $remote_port;
+    }
+}
+EOF
+)"
 
 main() {
   # cd $(cd `dirname $0` && pwd)
