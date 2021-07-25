@@ -119,6 +119,46 @@ do__action() {
       sudo rm -rf "/etc/sudoers.d/${local__path_my_sudoers}" || break
       sudo mv "${local__path_my_sudoers}" "/etc/sudoers.d/" || break
 
+      # 安装 Docker
+      docker -v || {
+        # snap install
+        sudo snap install docker || break
+        # # script install
+        # wget -qO- http://get.docker.io | sh || break
+        # # pkg install
+        # local local__pkg_filename_containerd="containerd.io_1.4.6-1_amd64.deb"
+        # local local__pkg_filename_docker_ce_cli="docker-ce-cli_20.10.7~3-0~ubuntu-focal_amd64.deb"
+        # local local__pkg_filename_docker_ce="docker-ce_20.10.7~3-0~ubuntu-focal_amd64.deb"
+        # do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_containerd}" "${local__pkg_filename_containerd}" "${var__inst_pkg_path}" || break
+        # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_containerd}" || break
+        # do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce_cli}" "${local__pkg_filename_docker_ce_cli}" "${var__inst_pkg_path}" || break
+        # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || break
+        # do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
+        # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || break
+        # set user group
+        getent group docker || sudo groupadd --system docker || break
+        sudo usermod -aG docker $USER || break
+      }
+      if [ "y" = "${var__init_os__proxy__apply}" ]; then
+        local local__host_proxy="${var__init_os__proxy__host_name_local}:${var__init_os__proxy__port}"
+        [ -n "${var__init_os__proxy__username}" ] && local__host_proxy="${var__init_os__proxy__username}:${var__init_os__proxy__password}@${local__host_proxy}"
+        local local__url_proxy=""
+        [ -n "${var__init_os__proxy__ip}" ] && local__url_proxy="http://${local__host_proxy}/"
+        local local__no_proxy_items=".local,localhost,127.0.0.1,::1"
+        local local__path_docker_proxy="/etc/systemd/system/snap.docker.dockerd.service" #"/etc/systemd/system/docker.service.d/http-proxy.conf"
+        local local__lines_docker_proxy1="\n\n"
+        local__lines_docker_proxy1="${local__lines_docker_proxy1}[Service]\n"
+        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTP_PROXY=${local__url_proxy}\"\n"
+        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTPS_PROXY=${local__url_proxy}\"\n"
+        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"NO_PROXY=${local__no_proxy_items}\"\n"
+        # set proxy
+        do__func_add_file_content "append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
+        local local__path_docker_daemon="/var/snap/docker/current/etc/docker/daemon.json" #"/etc/docker/daemon.json"
+        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
+        # set registry
+        do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
+      fi
+
       # 部分设置在重启后生效
       sudo apt-get -yf install || break
 
@@ -147,46 +187,6 @@ do__action() {
       ssh -V || { sudo apt-get -y install ssh || break; }
 
       ##### 开发依赖 #####
-      # 安装 Docker
-      docker -v || {
-        # # snap install
-        # sudo snap install docker || break
-        # # script install
-        # wget -qO- http://get.docker.io | sh || break
-        # pkg install
-        local local__pkg_filename_containerd="containerd.io_1.4.6-1_amd64.deb"
-        local local__pkg_filename_docker_ce_cli="docker-ce-cli_20.10.7~3-0~ubuntu-focal_amd64.deb"
-        local local__pkg_filename_docker_ce="docker-ce_20.10.7~3-0~ubuntu-focal_amd64.deb"
-        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_containerd}" "${local__pkg_filename_containerd}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_containerd}" || break
-        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce_cli}" "${local__pkg_filename_docker_ce_cli}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || break
-        do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
-        sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || break
-        # set user group
-        getent group docker || sudo groupadd --system docker || break
-        sudo usermod -aG docker $USER || break
-      }
-      if [ "y" = "${var__init_os__proxy__apply}" ]; then
-        local local__host_proxy="${var__init_os__proxy__host_name_local}:${var__init_os__proxy__port}"
-        [ -n "${var__init_os__proxy__username}" ] && local__host_proxy="${var__init_os__proxy__username}:${var__init_os__proxy__password}@${local__host_proxy}"
-        local local__url_proxy=""
-        [ -n "${var__init_os__proxy__ip}" ] && local__url_proxy="http://${local__host_proxy}/"
-        local local__no_proxy_items=".local,localhost,127.0.0.1,::1"
-        local local__path_docker_proxy="/etc/systemd/system/docker.service.d/http-proxy.conf"
-        local local__lines_docker_proxy1="\n\n"
-        local__lines_docker_proxy1="${local__lines_docker_proxy1}[Service]\n"
-        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTP_PROXY=${local__url_proxy}\"\n"
-        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTPS_PROXY=${local__url_proxy}\"\n"
-        local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"NO_PROXY=${local__no_proxy_items}\"\n"
-        # set proxy
-        do__func_add_file_content "append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
-        local local__path_docker_daemon="/etc/docker/daemon.json"
-        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
-        # set registry
-        do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
-      fi
-
       # 安装 VSCode
       code -v || {
         # snap install
@@ -250,6 +250,17 @@ do__action() {
       sudo apt-get -yf install || break
 
       printf -- "\n[$(date) @ X] Success!\n"
+
+    elif [ "type__build_docker" = "${local__cmd_type}" ]; then
+
+      echo ${var__path_my_all_server_nginx_cert:="/etc/nginx/ssl/self.pem"}
+      echo ${var__path_my_all_server_nginx_conf:="/etc/nginx/conf.d/all-server.default.conf"}
+
+      mkdir -p "$(dirname "${var__path_my_all_server_nginx_cert}")" || break
+      openssl req -new -x509 -days 365 -nodes -out "${var__path_my_all_server_nginx_cert}" -keyout "${var__path_my_all_server_nginx_cert}" -subj "/C=US/ST=California/L=San Diego/O=Development/OU=Dev/CN=example.com" || break
+
+      mkdir -p "$(dirname "${var__path_my_all_server_nginx_conf}")" || break
+      printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${var__path_my_all_server_nginx_conf}" || break
 
     else
 
