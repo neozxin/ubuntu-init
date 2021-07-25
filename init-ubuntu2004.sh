@@ -164,7 +164,7 @@ do__action() {
         do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
         sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || break
         # set user group
-        getent group docker || sudo groupadd docker || break
+        getent group docker || sudo groupadd --system docker || break
         sudo usermod -aG docker $USER || break
       }
       if [ "y" = "${var__init_os__proxy__apply}" ]; then
@@ -182,7 +182,7 @@ do__action() {
         # set proxy
         do__func_add_file_content "append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
         local local__path_docker_daemon="/etc/docker/daemon.json"
-        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://9cpn8tt6.mirror.aliyuncs.com\"] }\n"
+        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
         # set registry
         do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
       fi
@@ -235,10 +235,15 @@ do__action() {
         # docker run --name=my-webssh-server -d --restart=unless-stopped -p=8888:8888 jakewalker/webssh || break
         docker run --name=my-webssh-server -d --restart=unless-stopped --net=host jakewalker/webssh || break
         wget -qO- https://raw.githubusercontent.com/x11vnc/docker-desktop/master/docker_desktop.py | python3 || break
-        local local__path_my_all_server_nginx_conf="$HOME/vol-docker/my-all-server.default.conf"
+        local local__path_my_all_server_nginx_conf="$HOME/vol-docker/my-all-server/conf.d/all-server.default.conf"
         mkdir -p "$(dirname "${local__path_my_all_server_nginx_conf}")" || break
-        printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${local__path_my_all_server_nginx_conf}"
-        docker run --name=my-all-server -d --restart=unless-stopped --net=host -v="${local__path_my_all_server_nginx_conf}":"/etc/nginx/conf.d/default.conf":ro nginx || break
+        printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${local__path_my_all_server_nginx_conf}" || break
+        local local__path_my_all_server_nginx_cert="$HOME/vol-docker/my-all-server/ssl/self.pem"
+        mkdir -p "$(dirname "${local__path_my_all_server_nginx_cert}")" || break
+        openssl req -new -x509 -days 365 -nodes -out "${local__path_my_all_server_nginx_cert}" -keyout "${local__path_my_all_server_nginx_cert}" || break
+        docker run --name=my-all-server -d --restart=unless-stopped -p=443:443 --add-host=host.mydocker.local:172.17.0.1 \
+          -v="$(dirname "${local__path_my_all_server_nginx_conf}")":"/etc/nginx/conf.d":ro \
+          -v="$(dirname "${local__path_my_all_server_nginx_cert}")":"/etc/nginx/ssl":ro nginx || break
       }
 
       # 部分设置在重启后生效
@@ -258,13 +263,19 @@ do__action() {
 
 var__inst_dev__my_all_server_nginx_conf="$(cat << 'EOF'
 server {
-    listen       80;
-    listen  [::]:80;
+    listen       443 ssl;
     server_name  _;
+    ssl on;
+    ssl_certificate      /etc/nginx/ssl/self.pem;  #指定数字证书文件
+    ssl_certificate_key  /etc/nginx/ssl/self.pem;  #指定数字证书私钥文件
+    ssl_session_cache    shared:SSL:1m;
+    ssl_session_timeout  5m;
+    ssl_ciphers  HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers  on;
 
     location /wssh/ {
         #proxy_redirect off;
-        proxy_pass http://localhost:8888/;
+        proxy_pass http://host.mydocker.local:8888/;
         proxy_http_version 1.1;
         proxy_read_timeout 300;
         proxy_set_header Upgrade $http_upgrade;
@@ -275,7 +286,7 @@ server {
     }
     location /x11vnc/ {
         #proxy_redirect off;
-        proxy_pass http://localhost:6080/;
+        proxy_pass http://host.mydocker.local:6080/;
         proxy_http_version 1.1;
         proxy_read_timeout 300;
         proxy_set_header Upgrade $http_upgrade;
