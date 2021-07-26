@@ -1,0 +1,9 @@
+version: "3.3"
+services:
+  dc-gate-server:
+    image: neozxin/dev-gate-server:latest
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    extra_hosts:
+      - "host.mydocker.local:172.17.0.1"
