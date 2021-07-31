@@ -33,6 +33,7 @@ do__action() {
         [ -n "${var__init_os__proxy__ip}" ] && local__url_proxy="http://${local__host_proxy}/"
         #### proxy hostname
         local local__path_etc_hosts="/etc/hosts"
+        cp "${local__path_etc_hosts}" "${local__path_etc_hosts}_BAK$(date -u +'%Y-%m-%dT%H-%M-%S')UTC" || break
         local local__line_etc_hosts_proxy1="${var__init_os__proxy__ip} ${var__init_os__proxy__host_name_local}\n"
         [ -z "${var__init_os__proxy__ip}" ] || printf -- "${local__line_etc_hosts_proxy1}" >> "${local__path_etc_hosts}" || break
         #### general proxy
@@ -63,11 +64,11 @@ do__action() {
       #### Replace ssh config:
       local local_sshCfgFile="/etc/ssh/sshd_config"
       local local_sshCfgFile__PermitRootLogin="PermitRootLogin yes"
-      local local_sshCfgFile__X11Forwarding="X11Forwarding yes"
+      # local local_sshCfgFile__X11Forwarding="X11Forwarding yes"
       local local_sshCfgFileAddContent=""
       cp "${local_sshCfgFile}" "${local_sshCfgFile}_BAK$(date -u +'%Y-%m-%dT%H-%M-%S')UTC" || break
       grep -qx "${local_sshCfgFile__PermitRootLogin}" "${local_sshCfgFile}" || local_sshCfgFileAddContent="${local_sshCfgFileAddContent}${local_sshCfgFile__PermitRootLogin}\n"
-      grep -qx "${local_sshCfgFile__X11Forwarding}" "${local_sshCfgFile}" || local_sshCfgFileAddContent="${local_sshCfgFileAddContent}${local_sshCfgFile__X11Forwarding}\n"
+      # grep -qx "${local_sshCfgFile__X11Forwarding}" "${local_sshCfgFile}" || local_sshCfgFileAddContent="${local_sshCfgFileAddContent}${local_sshCfgFile__X11Forwarding}\n"
       [ -z "${local_sshCfgFileAddContent}" ] || printf -- "\n\n\n${local_sshCfgFileAddContent}\n" >> "${local_sshCfgFile}" || break
       service sshd restart || break
 
