@@ -106,6 +106,8 @@ do__action() {
 
     elif [ "type__inst_dev" = "${local__cmd_type}" ]; then
 
+      printf -- "\n\n"
+
     else
 
       printf -- "\nUsage: config variables before executing me\n"
