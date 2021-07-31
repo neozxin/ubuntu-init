@@ -93,6 +93,11 @@ do__action() {
       apk add docker || break
       rc-update add docker boot || break
       service docker start || break
+      #### set registry
+      local local__path_docker_daemon="/etc/docker/daemon.json"
+      local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
+      [ -z "${local__path_docker_daemon}" ] || printf -- "${local__lines_docker_daemon}" > "${local__path_docker_daemon}" || break
+      #### set user group
       getent group docker || addgroup -S docker || break
       adduser "$local_newUser" docker || break
 
