@@ -1,19 +1,14 @@
 version: "3.8"
-
-x-networkfit:
-  &NETWORKFIT
-  network: host
-  args:
-    http_proxy: $http_proxy
-    https_proxy: $https_proxy
-
 services:
   ####
   dc-gate-server:
     build:
       context: ./dev-gate-server
       dockerfile: Dockerfile
-      << : *NETWORKFIT
+      network: host
+      args:
+        http_proxy: $http_proxy
+        https_proxy: $https_proxy
     image: "neozxin/dev-gate-server:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
@@ -25,7 +20,10 @@ services:
     build:
       context: ./dev-desktop-terminal
       dockerfile: Dockerfile
-      << : *NETWORKFIT
+      network: host
+      args:
+        http_proxy: $http_proxy
+        https_proxy: $https_proxy
     image: "neozxin/dev-desktop-terminal:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
@@ -39,7 +37,10 @@ services:
     build:
       context: ./dev-desktop-x11vnc
       dockerfile: Dockerfile
-      << : *NETWORKFIT
+      network: host
+      args:
+        http_proxy: $http_proxy
+        https_proxy: $https_proxy
     image: "neozxin/dev-desktop-x11vnc:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
