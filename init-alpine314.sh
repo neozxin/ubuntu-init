@@ -34,9 +34,7 @@ do__action() {
         #### proxy hostname
         local local__path_etc_hosts="/etc/hosts"
         local local__line_etc_hosts_proxy1="${var__init_os__proxy__ip} ${var__init_os__proxy__host_name_local}\n"
-        [ -n "${var__init_os__proxy__ip}" ] && {
-          printf -- "${local__line_etc_hosts_proxy1}" >> "${local__path_etc_hosts}" || break
-        }
+        [ -z "${var__init_os__proxy__ip}" ] || printf -- "${local__line_etc_hosts_proxy1}" >> "${local__path_etc_hosts}" || break
         #### general proxy
         local local__path_env="/etc/profile.d/myenvs_$(date -u +'%Y-%m-%dT%H-%M-%S')UTC"
         local local__no_proxy_items=".local,localhost,127.0.0.1,::1"
@@ -52,7 +50,7 @@ do__action() {
       local_apkReposFile="/etc/apk/repositories"
       # #### Add more apk repositories:
       # local_apkReposFile__repo1="http://mirrors.tuna.tsinghua.edu.cn/alpine/edge/community"
-      # grep -qx "${local_apkReposFile__repo1}" "${local_apkReposFile}" || { echo "${local_apkReposFile__repo1}" >> "${local_apkReposFile}" || break; }
+      # grep -qx "${local_apkReposFile__repo1}" "${local_apkReposFile}" || echo "${local_apkReposFile__repo1}" >> "${local_apkReposFile}" || break
       #### Replace apk repositories:
       cp "${local_apkReposFile}" "${local_apkReposFile}_BAK$(date -u +'%Y-%m-%dT%H-%M-%S')UTC"
       printf -- "${var__apkReposFileContent}" > "${local_apkReposFile}" || break
@@ -66,9 +64,11 @@ do__action() {
       local local_sshCfgFile="/etc/ssh/sshd_config"
       local local_sshCfgFile__PermitRootLogin="PermitRootLogin yes"
       local local_sshCfgFile__X11Forwarding="X11Forwarding yes"
+      local local_sshCfgFileAddContent=""
       cp "${local_sshCfgFile}" "${local_sshCfgFile}_BAK$(date -u +'%Y-%m-%dT%H-%M-%S')UTC" || break
-      grep -qx "${local_sshCfgFile__PermitRootLogin}" "${local_sshCfgFile}" || { printf -- "\n\n${local_sshCfgFile__PermitRootLogin}\n" >> "${local_sshCfgFile}" || break; }
-      grep -qx "${local_sshCfgFile__X11Forwarding}" "${local_sshCfgFile}" || { printf -- "\n\n${local_sshCfgFile__X11Forwarding}\n" >> "${local_sshCfgFile}" || break; }
+      grep -qx "${local_sshCfgFile__PermitRootLogin}" "${local_sshCfgFile}" || local_sshCfgFileAddContent="${local_sshCfgFileAddContent}${local_sshCfgFile__PermitRootLogin}\n"
+      grep -qx "${local_sshCfgFile__X11Forwarding}" "${local_sshCfgFile}" || local_sshCfgFileAddContent="${local_sshCfgFileAddContent}${local_sshCfgFile__X11Forwarding}\n"
+      [ -z "${local_sshCfgFileAddContent}" ] || printf -- "\n\n\n${local_sshCfgFileAddContent}\n" >> "${local_sshCfgFile}" || break
       service sshd restart || break
 
       #### Add user:
@@ -85,10 +85,8 @@ do__action() {
         local local__lines_etc_hosts=""
         local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_guest_ip} ${var__init_os__virtualbox_guest__nat_guest_name_local}\n"
         local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_host_ip} ${var__init_os__virtualbox_guest__nat_host_name_local}\n"
-        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && {
-          printf -- "${local__lines_etc_hosts}" >> "${local__path_etc_hosts}" || break
-        }
-        # sudo reboot
+        [ -z "${var__init_os__virtualbox_guest__nat_host_ip}" ] || printf -- "${local__lines_etc_hosts}" >> "${local__path_etc_hosts}" || break
+        # reboot
       fi
 
       #### Add Docker: ref: http://janhapke.com/blog/installing-docker-daemon-on-alpine-linux/
