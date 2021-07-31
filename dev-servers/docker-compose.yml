@@ -1,5 +1,6 @@
 version: "3.8"
 services:
+  ####
   dc-gate-server:
     build:
       context: ./dev-gate-server
@@ -14,6 +15,7 @@ services:
       - "443:443"
     extra_hosts:
       - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
+  ####
   dc-desktop-terminal:
     build:
       context: ./dev-desktop-terminal
@@ -30,17 +32,18 @@ services:
       - "17681:7681"
     extra_hosts:
       - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
-  # dc-desktop-x11vnc:
-  #   build:
-  #     context: ./dev-desktop-x11vnc
-  #     dockerfile: Dockerfile
-  #     network: host
-  #     args:
-  #       http_proxy: $http_proxy
-  #       https_proxy: $https_proxy
-  #   image: "neozxin/dev-desktop-x11vnc:${ENV_DOCKERC_TAG:-latest}"
-  #   restart: unless-stopped
-  #   ports:
-  #     - "5900:5900"
-  #   extra_hosts:
-  #     - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
+  ####
+  dc-desktop-x11vnc:
+    build:
+      context: ./dev-desktop-x11vnc
+      dockerfile: Dockerfile
+      network: host
+      args:
+        http_proxy: $http_proxy
+        https_proxy: $https_proxy
+    image: "neozxin/dev-desktop-x11vnc:${ENV_DOCKERC_TAG:-latest}"
+    restart: unless-stopped
+    ports:
+      - "5900:5900"
+    extra_hosts:
+      - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
