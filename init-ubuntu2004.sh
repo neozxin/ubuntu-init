@@ -63,17 +63,17 @@ do__action() {
 
       printf -- "\n[$(date) @ X] ================ 初始化 Ubuntu 20.04-LTS 系统环境: 3.0.210702 ================\n"
 
-      # 配置 proxy
+      #### 配置 proxy
       if [ "y" = "${var__init_os__proxy__apply}" ]; then
         local local__host_proxy="${var__init_os__proxy__host_name_local}:${var__init_os__proxy__port}"
         [ -n "${var__init_os__proxy__username}" ] && local__host_proxy="${var__init_os__proxy__username}:${var__init_os__proxy__password}@${local__host_proxy}"
         local local__url_proxy=""
         [ -n "${var__init_os__proxy__ip}" ] && local__url_proxy="http://${local__host_proxy}/"
-        # proxy hostname
+        #### proxy hostname
         local local__path_etc_hosts="/etc/hosts"
         local local__line_etc_hosts_proxy1="${var__init_os__proxy__ip} ${var__init_os__proxy__host_name_local}\n"
-        [ -n "${var__init_os__proxy__ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_proxy1}" || break; }
-        # general proxy
+        [ -z "${var__init_os__proxy__ip}" ] || do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__line_etc_hosts_proxy1}" || break
+        #### general proxy
         local local__path_env="/etc/environment"
         local local__no_proxy_items=".local,localhost,127.0.0.1,::1"
         local local__lines_env_proxy1="\n\n"
@@ -82,24 +82,24 @@ do__action() {
         local__lines_env_proxy1="${local__lines_env_proxy1}ftp_proxy=${local__url_proxy}\nFTP_PROXY=${local__url_proxy}\n"
         local__lines_env_proxy1="${local__lines_env_proxy1}no_proxy=${local__no_proxy_items}\nNO_PROXY=${local__no_proxy_items}\n"
         do__func_add_file_content "append" "${local__path_env}" "${local__lines_env_proxy1}" || break
-        # apt proxy
+        #### apt proxy
         local local__path_apt_proxy="/etc/apt/apt.conf.d/80proxy"
         local local__lines_apt_proxy1="\n\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::http::proxy \"${local__url_proxy}\";\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::https::proxy \"${local__url_proxy}\";\n"
         local__lines_apt_proxy1="${local__lines_apt_proxy1}Acquire::ftp::proxy \"${local__url_proxy}\";\n"
         do__func_add_file_content "append" "${local__path_apt_proxy}" "${local__lines_apt_proxy1}" || break
-        # snap proxy
+        #### snap proxy
         sudo snap set system proxy.http="${local__url_proxy}" || break
         sudo snap set system proxy.https="${local__url_proxy}" || break
       fi
 
-      # 准备依赖环境
+      #### 准备依赖环境
       sudo apt-get -y update || break
       sudo apt-get -yf install || break
 
-      # 授予 VirtualBox Share Folder 当前用户的访问权限： https://www.htpcbeginner.com/mount-virtualbox-shared-folder-on-ubuntu-linux/
-      # VirtualBox VM 需要先安装支持套件: menu - Devices - Insert Guest Additions CD image...
+      #### 授予 VirtualBox Share Folder 当前用户的访问权限： https://www.htpcbeginner.com/mount-virtualbox-shared-folder-on-ubuntu-linux/
+      #### VirtualBox VM 需要先安装支持套件: menu - Devices - Insert Guest Additions CD image...
       if [ "y" = "${var__init_os__virtualbox_guest__apply}" ]; then
         # sudo apt-get install virtualbox-guest-dkms || break #https://download.virtualbox.org/virtualbox/5.2.6/
         getent group vboxsf && { sudo usermod -a -G vboxsf $USER || break; }
@@ -107,11 +107,11 @@ do__action() {
         local local__lines_etc_hosts=""
         local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_guest_ip} ${var__init_os__virtualbox_guest__nat_guest_name_local}\n"
         local__lines_etc_hosts="${local__lines_etc_hosts}${var__init_os__virtualbox_guest__nat_host_ip} ${var__init_os__virtualbox_guest__nat_host_name_local}\n"
-        [ -n "${var__init_os__virtualbox_guest__nat_host_ip}" ] && { do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__lines_etc_hosts}" || break; }
+        [ -z "${var__init_os__virtualbox_guest__nat_host_ip}" ] || do__func_add_file_content "prepend" "${local__path_etc_hosts}" "${local__lines_etc_hosts}" || break
         # sudo reboot
       fi
 
-      # # 默认 root 权限配置
+      #### 默认 root 权限配置
       local local__path_my_sudoers="$HOME/mysudoers_$(date +%s%N)"
       sudo printf -- "\n\n$USER ALL=(ALL:ALL) NOPASSWD: ALL\n" > "${local__path_my_sudoers}" || break
       sudo chown root:root "${local__path_my_sudoers}" || break
@@ -119,13 +119,15 @@ do__action() {
       sudo rm -rf "/etc/sudoers.d/${local__path_my_sudoers}" || break
       sudo mv "${local__path_my_sudoers}" "/etc/sudoers.d/" || break
 
-      # 安装 Docker
+      #### 安装 Docker
       docker -v || {
-        # snap install
+        local local__path_docker_daemon=""
+        #### snap install
         sudo snap install docker || break
-        # # script install
+        local__path_docker_daemon="/var/snap/docker/current/etc/docker/daemon.json" #"/etc/docker/daemon.json"
+        # #### script install
         # wget -qO- http://get.docker.io | sh || break
-        # # pkg install
+        # #### pkg install
         # local local__pkg_filename_containerd="containerd.io_1.4.6-1_amd64.deb"
         # local local__pkg_filename_docker_ce_cli="docker-ce-cli_20.10.7~3-0~ubuntu-focal_amd64.deb"
         # local local__pkg_filename_docker_ce="docker-ce_20.10.7~3-0~ubuntu-focal_amd64.deb"
@@ -135,11 +137,15 @@ do__action() {
         # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce_cli}" || break
         # do__func_download_file "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/${local__pkg_filename_docker_ce}" "${local__pkg_filename_docker_ce}" "${var__inst_pkg_path}" || break
         # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename_docker_ce}" || break
-        # set user group
+        #### set registry
+        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
+        [ -z "${local__path_docker_daemon}" ] || do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
+        #### set user group
         getent group docker || sudo groupadd --system docker || break
         sudo usermod -aG docker $USER || break
       }
       if [ "y" = "${var__init_os__proxy__apply}" ]; then
+        #### set proxy
         local local__host_proxy="${var__init_os__proxy__host_name_local}:${var__init_os__proxy__port}"
         [ -n "${var__init_os__proxy__username}" ] && local__host_proxy="${var__init_os__proxy__username}:${var__init_os__proxy__password}@${local__host_proxy}"
         local local__url_proxy=""
@@ -151,15 +157,10 @@ do__action() {
         local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTP_PROXY=${local__url_proxy}\"\n"
         local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"HTTPS_PROXY=${local__url_proxy}\"\n"
         local__lines_docker_proxy1="${local__lines_docker_proxy1}Environment=\"NO_PROXY=${local__no_proxy_items}\"\n"
-        # set proxy
         do__func_add_file_content "append" "${local__path_docker_proxy}" "${local__lines_docker_proxy1}" || break
-        local local__path_docker_daemon="/var/snap/docker/current/etc/docker/daemon.json" #"/etc/docker/daemon.json"
-        local local__lines_docker_daemon="\n\n{ \"registry-mirrors\": [\"https://docker.mirrors.ustc.edu.cn\"] }\n"
-        # set registry
-        do__func_add_file_content "append" "${local__path_docker_daemon}" "${local__lines_docker_daemon}" || break
       fi
 
-      # 部分设置在重启后生效
+      #### 部分设置在重启后生效
       sudo apt-get -yf install || break
 
       printf -- "\n[$(date) @ X] Success! Please reboot to finish\n"
@@ -168,49 +169,49 @@ do__action() {
 
       printf -- "\n[$(date) @ X] ================ 安装 Ubuntu 20.04-LTS 工具应用: 3.0.210702 ================\n"
 
-      # 准备依赖环境
+      #### 准备依赖环境
       sudo apt-get -y update || break
       sudo apt-get -yf install || break
 
-      # 准备 software suites installation repos
-      [ -n "${var__inst_pkg_path}" ] && { mkdir -p "${var__inst_pkg_path}" || break; }
-      [ -n "${var__inst_exec_path}" ] && { mkdir -p "${var__inst_exec_path}" || break; }
+      #### 准备 software suites installation repos
+      [ -z "${var__inst_pkg_path}" ] || mkdir -p "${var__inst_pkg_path}" || break
+      [ -z "${var__inst_exec_path}" ] || mkdir -p "${var__inst_exec_path}" || break
 
       ##### 基础依赖 #####
-      # 安装 Git
-      git --version || { sudo apt-get -y install git || break; }
+      #### 安装 Git
+      git --version || sudo apt-get -y install git || break
 
-      # 安装 Samba
-      samba -V || { sudo apt-get -y install samba || break; }
+      #### 安装 Samba
+      samba -V || sudo apt-get -y install samba || break
 
-      # 安装 SSH
-      ssh -V || { sudo apt-get -y install ssh || break; }
+      #### 安装 SSH
+      ssh -V || sudo apt-get -y install ssh || break
 
       ##### 开发依赖 #####
-      # 安装 VSCode
+      #### 安装 VSCode
       code -v || {
-        # snap install
+        #### snap install
         sudo snap install code --classic || break
-        # # pkg install
+        # #### pkg install
         # local local__pkg_filename="code_1.43.2-1585036376_amd64.deb"
         # do__func_download_file "https://vscode.cdn.azure.cn/stable/0ba0ca52957102ca3527cf479571617f0de6ed50/${local__pkg_filename}" "${local__pkg_filename}" "${var__inst_pkg_path}" || break
         # sudo dpkg -i "${var__inst_pkg_path}/${local__pkg_filename}" || sudo apt-get -yf install || break
       }
 
-      # 安装 NodeJS, Npm
+      #### 安装 NodeJS, Npm
       node -v || {
-        # snap install
+        #### snap install
         sudo snap install node --classic --channel=14 || break
-        # # apt install
+        # #### apt install
         # curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash - && sudo apt-get install -y nodejs || break
-        # # bin install
+        # #### bin install
         # local local__pkg_filename="node-v14.17.3-linux-x64.tar.xz"
         # do__func_download_file "https://nodejs.org/dist/v14.17.3/${local__pkg_filename}" "${local__pkg_filename}" "${var__inst_pkg_path}" || break
         # sudo tar -zxvf "${var__inst_pkg_path}/${local__pkg_filename}" -C "${var__inst_exec_path}" || break
         # local local__lines_env="\n\nexport PATH=\"${var__inst_exec_path}/node-v14.17.3-linux-x64/bin\":\"$PATH\""
         # do__func_add_file_content "append" "${var__env_path}" "${local__lines_env}" || break
       }
-      npm -v || { sudo apt-get -y install npm || break; }
+      npm -v || sudo apt-get -y install npm || break
       if [ "y" = "${var__init_os__proxy__apply}" ]; then
         local local__path_npmrc="$HOME/.npmrc"
         local local__host_proxy="${var__init_os__proxy__host_name_local}:${var__init_os__proxy__port}"
@@ -246,7 +247,7 @@ do__action() {
           -v="$(dirname "${local__path_my_all_server_nginx_cert}")":"/etc/nginx/ssl":ro nginx || break
       }
 
-      # 部分设置在重启后生效
+      #### 部分设置在重启后生效
       sudo apt-get -yf install || break
 
       printf -- "\n[$(date) @ X] Success!\n"
