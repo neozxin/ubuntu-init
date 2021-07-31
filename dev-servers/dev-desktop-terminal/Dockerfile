@@ -11,14 +11,23 @@ ENV HOME=/root \
 ENV DEV_DESKTOP_HOSTNAME="172.17.0.1" \
     DEV_DESKTOP_USERNAME="root"
 
+#### Switch to faster repository mirrors
+ARG path_apkrepos="/etc/apk/repositories"
+ARG content_apkrepos="${content_apkrepos}\nhttp://mirrors.tuna.tsinghua.edu.cn/alpine/v3.3/main"
+ARG content_apkrepos="${content_apkrepos}\nhttp://mirrors.tuna.tsinghua.edu.cn/alpine/v3.3/community"
+RUN cp "${path_apkrepos}" "${path_apkrepos}_BAK" \
+    && printf -- "${content_apkrepos}\n" > "${path_apkrepos}"
+
 RUN apk --update add openssh
 
 WORKDIR "$HOME/logs"
 WORKDIR "$HOME"
 
+#### Install ttyd
 ADD https://github.com/tsl0922/ttyd/releases/download/1.6.3/ttyd.x86_64 ttyd.x86_64
 RUN chmod +x ttyd.x86_64
 
+#### Set up SSH launcher
 ARG setsshhost='read -p "Login to host [${DEV_DESKTOP_HOSTNAME}]: " var__sshhost && var__sshhost=${var__sshhost:-${DEV_DESKTOP_HOSTNAME}}'
 ARG setsshuser='read -p "Login ${DEV_DESKTOP_HOSTNAME} as user [${DEV_DESKTOP_USERNAME}]: " var__sshuser && var__sshuser=${var__sshuser:-${DEV_DESKTOP_USERNAME}}'
 ARG sshcmd='ssh -X "${var__sshuser}@${var__sshhost}"'

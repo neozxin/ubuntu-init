@@ -8,12 +8,12 @@ services:
       args:
         http_proxy: $http_proxy
         https_proxy: $https_proxy
-    image: neozxin/dev-gate-server:latest
+    image: "neozxin/dev-gate-server:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
       - "443:443"
     extra_hosts:
-      - "host.mydocker.local:172.17.0.1"
+      - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
   dc-desktop-terminal:
     build:
       context: ./dev-desktop-terminal
@@ -22,14 +22,14 @@ services:
       args:
         http_proxy: $http_proxy
         https_proxy: $https_proxy
-    image: neozxin/dev-desktop-terminal:latest
+    image: "neozxin/dev-desktop-terminal:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
       - "15900:5900"
       - "16080:6080"
       - "17681:7681"
     extra_hosts:
-      - "host.mydocker.local:172.17.0.1"
+      - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"
   # dc-desktop-x11vnc:
   #   build:
   #     context: ./dev-desktop-x11vnc
@@ -38,9 +38,9 @@ services:
   #     args:
   #       http_proxy: $http_proxy
   #       https_proxy: $https_proxy
-  #   image: neozxin/dev-desktop-x11vnc:latest
+  #   image: "neozxin/dev-desktop-x11vnc:${ENV_DOCKERC_TAG:-latest}"
   #   restart: unless-stopped
   #   ports:
   #     - "5900:5900"
   #   extra_hosts:
-  #     - "host.mydocker.local:172.17.0.1"
+  #     - "host.mydocker.local:${ENV_DOCKERC_HOST:-172.17.0.1}"

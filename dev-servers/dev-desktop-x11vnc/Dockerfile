@@ -9,6 +9,11 @@ ENV HOME=/root \
 	DISPLAY_WIDTH=1024 \
 	DISPLAY_HEIGHT=768
 
+#### Switch to faster repository mirrors
+ARG path_apkrepos="/etc/apk/repositories"
+RUN cp "${path_apkrepos}" "${path_apkrepos}_BAK" \
+    && sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' "${path_apkrepos}"
+
 RUN apk --update --upgrade add \
 	socat \
 	supervisor \
