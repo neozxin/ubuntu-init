@@ -230,38 +230,10 @@ do__action() {
         sudo npm config list || break
       fi
 
-      [ "y" = "${var__init_os__virtualbox_guest__apply}" ] && {
-        # docker run --name=my-ssh-server -d --restart=unless-stopped -p=3000:3000 wettyoss/wetty --ssh-host="${var__init_os__virtualbox_guest__nat_guest_ip}" || break
-        # docker run --name=my-webssh2-server -d --restart=unless-stopped -p=2222:2222 psharkey/webssh2 || break
-        # docker run --name=my-webssh-server -d --restart=unless-stopped -p=8888:8888 jakewalker/webssh || break
-        docker run --name=my-webssh-server -d --restart=unless-stopped --net=host jakewalker/webssh || break
-        wget -qO- https://raw.githubusercontent.com/x11vnc/docker-desktop/master/docker_desktop.py | python3 || break
-        local local__path_my_all_server_nginx_conf="$HOME/vol-docker/my-all-server/conf.d/all-server.default.conf"
-        mkdir -p "$(dirname "${local__path_my_all_server_nginx_conf}")" || break
-        printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${local__path_my_all_server_nginx_conf}" || break
-        local local__path_my_all_server_nginx_cert="$HOME/vol-docker/my-all-server/ssl/self.pem"
-        mkdir -p "$(dirname "${local__path_my_all_server_nginx_cert}")" || break
-        openssl req -new -x509 -days 365 -nodes -out "${local__path_my_all_server_nginx_cert}" -keyout "${local__path_my_all_server_nginx_cert}" || break
-        docker run --name=my-all-server -d --restart=unless-stopped -p=443:443 --add-host=host.mydocker.local:172.17.0.1 \
-          -v="$(dirname "${local__path_my_all_server_nginx_conf}")":"/etc/nginx/conf.d":ro \
-          -v="$(dirname "${local__path_my_all_server_nginx_cert}")":"/etc/nginx/ssl":ro nginx || break
-      }
-
       #### 部分设置在重启后生效
       sudo apt-get -yf install || break
 
       printf -- "\n[$(date) @ X] Success!\n"
-
-    elif [ "type__build_docker" = "${local__cmd_type}" ]; then
-
-      echo ${var__path_my_all_server_nginx_cert:="/etc/nginx/ssl/self.pem"}
-      echo ${var__path_my_all_server_nginx_conf:="/etc/nginx/conf.d/all-server.default.conf"}
-
-      mkdir -p "$(dirname "${var__path_my_all_server_nginx_cert}")" || break
-      openssl req -new -x509 -days 365 -nodes -out "${var__path_my_all_server_nginx_cert}" -keyout "${var__path_my_all_server_nginx_cert}" -subj "/C=US/ST=California/L=San Diego/O=Development/OU=Dev/CN=example.com" || break
-
-      mkdir -p "$(dirname "${var__path_my_all_server_nginx_conf}")" || break
-      printf -- "${var__inst_dev__my_all_server_nginx_conf}" > "${var__path_my_all_server_nginx_conf}" || break
 
     else
 
@@ -272,44 +244,6 @@ do__action() {
   done
   return 1
 }
-
-var__inst_dev__my_all_server_nginx_conf="$(cat << 'EOF'
-server {
-    listen       443 ssl;
-    server_name  _;
-    ssl on;
-    ssl_certificate      /etc/nginx/ssl/self.pem;  #指定数字证书文件
-    ssl_certificate_key  /etc/nginx/ssl/self.pem;  #指定数字证书私钥文件
-    ssl_session_cache    shared:SSL:1m;
-    ssl_session_timeout  5m;
-    ssl_ciphers  HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers  on;
-
-    location /wssh/ {
-        #proxy_redirect off;
-        proxy_pass http://host.mydocker.local:8888/;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Real-PORT $remote_port;
-    }
-    location /x11vnc/ {
-        #proxy_redirect off;
-        proxy_pass http://host.mydocker.local:6080/;
-        proxy_http_version 1.1;
-        proxy_read_timeout 300;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Real-PORT $remote_port;
-    }
-}
-EOF
-)"
 
 main() {
   # cd $(cd `dirname $0` && pwd)
