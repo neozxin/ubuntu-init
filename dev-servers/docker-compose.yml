@@ -14,7 +14,7 @@ services:
       context: ./dev-gate-server
       dockerfile: Dockerfile
       << : *NETWORKFIT
-    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-gate-server:${ENV_CI_DOCKERIMAGE_THISTAG:-latest}"
+    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-gate-server:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
       - "443:443"
@@ -26,7 +26,7 @@ services:
       context: ./dev-desktop-terminal
       dockerfile: Dockerfile
       << : *NETWORKFIT
-    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-desktop-terminal:${ENV_CI_DOCKERIMAGE_THISTAG:-latest}"
+    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-desktop-terminal:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
       - "15900:5900"
@@ -40,7 +40,7 @@ services:
       context: ./dev-desktop-x11vnc
       dockerfile: Dockerfile
       << : *NETWORKFIT
-    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-desktop-x11vnc:${ENV_CI_DOCKERIMAGE_THISTAG:-latest}"
+    image: "${ENV_CI_DOCKER_USERNAME:-neozxin}/dev-desktop-x11vnc:${ENV_DOCKERC_TAG:-latest}"
     restart: unless-stopped
     ports:
       - "5900:5900"
