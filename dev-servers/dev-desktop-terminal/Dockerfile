@@ -1,4 +1,4 @@
-ARG STAGE0="alpine:3.13.5"
+ARG STAGE0="alpine:3.14.1"
 
 # FROM "$STAGE0" as STAGE_BUILDER
 FROM "$STAGE0"
@@ -17,10 +17,13 @@ RUN cp "${path_apkrepos}" "${path_apkrepos}_BAK" \
 
 RUN apk --update --upgrade add \
     openssh \
-    bash \
     fluxbox \
     socat \
-    supervisor \
+    runit \
+    nginx \
+    # busybox-extras \
+    # bash \
+    # supervisor \
     x11vnc \
     xterm \
     xvfb
@@ -30,14 +33,9 @@ WORKDIR "$HOME"
 
 #### Install noVNC
 ADD https://github.com/novnc/noVNC/archive/refs/tags/v1.2.0.tar.gz noVNC.tar.gz
-ADD https://github.com/novnc/websockify/archive/refs/tags/v0.10.0.tar.gz websockify.tar.gz
 RUN tar -xzf ./noVNC.tar.gz \
-    && tar -xzf ./websockify.tar.gz \
-    && rm -rf ./noVNC.tar.gz ./websockify.tar.gz \
-    && mv ./noVNC-1.2.0 ./noVNC \
-    && mv ./websockify-0.10.0 ./noVNC/utils/websockify \
-    && mv ./noVNC/utils/launch.sh ./noVNC/utils/novnc_proxy \
-    && sed -i -- "s/ps -p/ps -o pid | grep/g" ./noVNC/utils/novnc_proxy
+    && rm -rf ./noVNC.tar.gz \
+    && mv ./noVNC-1.2.0 /var/lib/nginx/html/noVNC
 # RUN git clone --depth 1 https://github.com/novnc/noVNC.git ./noVNC \
 #     && git clone --depth 1 https://github.com/novnc/websockify ./noVNC/utils/websockify \
 #     && rm -rf ./noVNC/.git ./noVNC/utils/websockify/.git \
@@ -57,13 +55,27 @@ RUN filecontent="#!/bin/sh" \
     && printf -- "${filecontent}\n" > "launch-ssh.sh" \
     && chmod +x "launch-ssh.sh"
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+#### Set up services
+RUN setapp='mkdir -p "/etc/service/${app_key}" && printf -- "#!/bin/sh\n${app_cmd}" > "/etc/service/${app_key}/run" && chmod +x "/etc/service/${app_key}/run"' \
+    && env app_key='xvfb' app_cmd='Xvfb :0 -screen 0 "$DISPLAY_WIDTH"x"$DISPLAY_HEIGHT"x24' sh -c "$setapp" \
+    && env app_key='x11vnc' app_cmd='x11vnc' sh -c "$setapp" \
+    && env app_key='socat' app_cmd='socat tcp-listen:6000,reuseaddr,fork unix:/tmp/.X11-unix/X0' sh -c "$setapp" \
+    && env app_key='fluxbox' app_cmd='fluxbox' sh -c "$setapp" \
+    && env app_key='shell' app_cmd='xterm -e "$HOME/launch-ssh.sh"' sh -c "$setapp" \
+    && env app_key='ttyd' app_cmd='$HOME/ttyd.x86_64 -p 7681 sh -c "$HOME/launch-ssh.sh"' sh -c "$setapp" \
+    && env app_key='novnc' app_cmd='nginx -g "daemon off;"' sh -c "$setapp" \
+    # && env app_key='novnc' app_cmd='httpd -fv -p 6080 -h $HOME/noVNC' sh -c "$setapp" \
+    # && env app_key='novnc' app_cmd='$HOME/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 6080' sh -c "$setapp" \
+    && setapp=''
+COPY terminal.default.conf /etc/nginx/http.d/
+# COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-EXPOSE 5900 6080 7681
+EXPOSE 5900 6080 7681 8080
 
 ENV DISPLAY_WIDTH=1024 \
     DISPLAY_HEIGHT=768 \
     DEV_DESKTOP_HOSTNAME="172.17.0.1" \
     DEV_DESKTOP_USERNAME="root"
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["runsvdir", "-P", "/etc/service"]
+# CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
