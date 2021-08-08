@@ -26,7 +26,8 @@ RUN apk --update --upgrade add \
     # supervisor \
     x11vnc \
     xterm \
-    xvfb
+    xvfb \
+    && rm -rf /var/cache/apk/*
 
 WORKDIR "$HOME/logs"
 WORKDIR "$HOME"
@@ -56,9 +57,9 @@ RUN filecontent="#!/bin/sh" \
     && chmod +x "launch-ssh.sh"
 
 #### Set up services
-RUN setapp='mkdir -p "/etc/service/${app_key}" && printf -- "#!/bin/sh\n${app_cmd}" > "/etc/service/${app_key}/run" && chmod +x "/etc/service/${app_key}/run"' \
+RUN setapp='mkdir -p "/etc/service/${app_key}" && printf -- "#!/bin/sh\n${app_cmd}\n" > "/etc/service/${app_key}/run" && chmod +x "/etc/service/${app_key}/run"' \
     && env app_key='xvfb' app_cmd='Xvfb :0 -screen 0 "$DISPLAY_WIDTH"x"$DISPLAY_HEIGHT"x24' sh -c "$setapp" \
-    && env app_key='x11vnc' app_cmd='x11vnc' sh -c "$setapp" \
+    && env app_key='x11vnc' app_cmd='x11vnc -rfbport 5900' sh -c "$setapp" \
     && env app_key='socat' app_cmd='socat tcp-listen:6000,reuseaddr,fork unix:/tmp/.X11-unix/X0' sh -c "$setapp" \
     && env app_key='fluxbox' app_cmd='fluxbox' sh -c "$setapp" \
     && env app_key='shell' app_cmd='xterm -e "$HOME/launch-ssh.sh"' sh -c "$setapp" \
