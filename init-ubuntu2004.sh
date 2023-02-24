@@ -5,13 +5,13 @@ echo ${var__cmd_types:="type__init_os|type__inst_dev"}
 # echo ${var__env_path:="$HOME/.profile"}
 echo ${var__inst_pkg_path:="$HOME/Downloads/_shares"}
 # echo ${var__inst_exec_path:="/opt"}
-echo ${var__init_os__virtualbox_guest__apply:="y"}
+echo ${var__init_os__virtualbox_guest__apply:=""} ###### y => 设置 virtualbox-guest ######
 echo  ${var__init_os__virtualbox_guest__nat_guest_name_local:="guest.mynat.local"}
 echo  ${var__init_os__virtualbox_guest__nat_guest_ip:="10.0.2.15"}
 echo  ${var__init_os__virtualbox_guest__nat_host_name_local:="host.mynat.local"}
 echo  ${var__init_os__virtualbox_guest__nat_host_ip:="10.0.2.2"}
-echo ${var__init_os__proxy__apply:=""}
-echo  ${var__init_os__proxy__ip:="10.41.77.158"} #10.42.70.226"}
+echo ${var__init_os__proxy__apply:=""} ###### y => 设置 corporate 代理 ######
+echo  ${var__init_os__proxy__ip:="10.42.70.226"} ### 备选: 10.41.77.158 ###
 echo  ${var__init_os__proxy__port:="8080"}
 echo  ${var__init_os__proxy__username:=""}
 echo  ${var__init_os__proxy__password:=""}
